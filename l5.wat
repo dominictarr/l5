@@ -77,8 +77,6 @@
     (i32.load (i32.add (get_local $list) (i32.const 8)))
   )
 
-
-
   (func $string (export "string") (param $length i32) (result i32)
     (i32.store
       (get_global $free)
@@ -106,13 +104,4 @@
 
   (export "memory" (memory $memory))
 )
-
-
-
-
-
-
-
-
-
 
