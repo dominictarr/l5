@@ -5,6 +5,19 @@ low level lisp like language (L5)
 subset of web assembly s-expression text format,
 goal: be self-hosting.
 
+## what does this do?
+
+currently it stores an ast in wasm memory,
+(parsed with a little help from javascript)
+
+``` js
+> node codec.js ./l5.wat
+(module (global $free (mut i32) (i32.const 16)) (global $root (mut i32) (i32.const 0)) (memory $memory 10) (func $claim (param $length i32) (result i32) (local $_free i32) (set_local $_free (get_global $free)) (set_global $free (i32.add (get_global $free) (get_local $length))) (get_local $_free)) (func $cons (export "cons") (param $head i32) (param $tail i32) (result i32) (i32.store (get_global $free) (i32.const 3)) (i32.store (i32.add (get_global $free) (i32.const 4)) (get_local $head)) (i32.store (i32.add (get_global $free) (i32.const 8)) (get_local $tail)) (call $claim (i32.const 12))) (func $is_string (export "is_string") (param $str i32) (result i32) (i32.eq (i32.and (i32.load (get_local $str)) (i32.const 7)) (i32.const 4))) (func $is_cons (export "is_cons") (param $cons i32) (result i32) (i32.lt_u (i32.and (i32.load (get_local $cons)) (i32.const 7)) (i32.const 4))) (func $head (export "head") (param $list i32) (result i32) (i32.load (i32.add (get_local $list) (i32.const 4)))) (func $tail (export "tail") (param $list i32) (result i32) (i32.load (i32.add (get_local $list) (i32.const 8)))) (func $set_head (export "set_head") (param $list i32) (param $value i32) (result i32) (i32.store (i32.add (get_local $list) (i32.const 4)) (get_local $value)) (get_local $list)) (func $set_tail (export "set_tail") (param $list i32) (param $value i32) (result i32) (i32.store (i32.add (get_local $list) (i32.const 8)) (get_local $value)) (get_local $value)) (func $string (export "string") (param $length i32) (result i32) (i32.store (get_global $free) (i32.or (i32.const 4) (i32.shl (get_local $length) (i32.const 8)))) (call $claim (i32.add (get_local $length) (i32.const 4)))) (func $string_length (export "string_length") (param $str i32) (result i32) (i32.shr_u (i32.load (get_local $str)) (i32.const 8))) (func $last (export "last") (param $list i32) (result i32) (if (call $tail (get_local $list)) (return (call $last (call $tail (get_local $list))))) (return (get_local $list))) (func $append (export "append") (param $list i32) (param $value i32) (result i32) (call $set_tail (call $last (get_local $list)) (call $cons (get_local $value) (i32.const 0)))) (export "memory" (memory $memory)))
+```
+
+but all the data structures are in wasm with pointers and stuff,
+so that's progress!
+
 ## data structures
 
 lisp is lists. a list is conses, or strings.
@@ -80,6 +93,7 @@ throws if s is not a string.
 ## License
 
 MIT
+
 
 
 
