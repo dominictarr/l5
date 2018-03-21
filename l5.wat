@@ -61,20 +61,21 @@
   )
 
   (func $head (export "head") (param $list i32) (result i32)
-    (if
-      ;;equal to zero is the same as ! (not)
-      (i32.eqz (call $is_cons (get_local $list)))
-      (return (i32.const -1))
-    )
     (i32.load (i32.add (get_local $list) (i32.const 4)))
   )
 
   (func $tail (export "tail") (param $list i32) (result i32)
-    (if
-      (i32.eqz (call $is_cons (get_local $list)))
-      (return (i32.const -1))
-    )
     (i32.load (i32.add (get_local $list) (i32.const 8)))
+  )
+
+  (func $set_head (export "set_head") (param $list i32) (param $value i32) (result i32)
+    (i32.store (i32.add (get_local $list) (i32.const 4)) (get_local $value))
+    (get_local $list)
+  )
+
+  (func $set_tail (export "set_tail") (param $list i32) (param $value i32)(result i32)
+    (i32.store (i32.add (get_local $list) (i32.const 8)) (get_local $value))
+    (get_local $value)
   )
 
   (func $string (export "string") (param $length i32) (result i32)
@@ -94,14 +95,27 @@
 
   (func $string_length (export "string_length") (param $str i32) (result i32)
     ;; type information, check if this position is really a string
-    (if
-      (i32.eqz (call $is_string (get_local $str)))
-      (return (i32.const 0))
-    )
-
     (i32.shr_u (i32.load (get_local $str)) (i32.const 8))
+  )
+
+  (func $last (export "last") (param $list i32) (result i32)
+    (if
+      (call $tail (get_local $list))
+      (return (call $last (call $tail (get_local $list))))
+;;      (else (return (get_local $list)))
+    )
+    (return (get_local $list))
+  )
+
+  (func $append (export "append") (param $list i32) (param $value i32) (result i32)
+    (call $set_tail
+      (call $last (get_local $list))
+      (call $cons (get_local $value) (i32.const 0))
+    )
   )
 
   (export "memory" (memory $memory))
 )
+
+
 

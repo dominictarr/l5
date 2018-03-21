@@ -45,15 +45,25 @@ return 1 if `s` is a string
 
 ### string_length (s)
 
-returns the length of the string, or -1 if not a string.
+returns the length of the string.
 
 ### head (c)
 
-return the value at the head of the cons `c`, or -1 if it's not a cons.
+return the value at the head of the cons `c`.
 
 ### tail (c)
 
-return the value at the tail of the cons `c` or -1 if it's not a cons.
+return the value at the tail of the cons `c`
+
+### set_head (c, v)
+
+sets the value at the head of the cons `c` to `v`,
+`c` is returned.
+
+### set_tail (c, v)
+
+sets the value at the tail of the cons `c` to `v`
+`v` is returned.
 
 ### write (string) => s
 
@@ -70,5 +80,6 @@ throws if s is not a string.
 ## License
 
 MIT
+
 
 
