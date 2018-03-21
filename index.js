@@ -4,7 +4,6 @@ var wasm = fs.readFileSync(path.join(__dirname, './l5.wasm'))
 var m = WebAssembly.Module(wasm)
 var instance = WebAssembly.Instance(m)
 
-console.log(instance)
 var buffer = new Buffer(instance.exports.memory.buffer)
 
 for(var k in instance.exports)
@@ -38,4 +37,5 @@ exports.read = function (str) {
 //console.log(exports.read(exports.head(c1)))
 //console.log(exports.read(exports.head(exports.tail(c1))))
 //
+
 
