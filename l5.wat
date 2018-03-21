@@ -102,20 +102,53 @@
     (if
       (call $tail (get_local $list))
       (return (call $last (call $tail (get_local $list))))
-;;      (else (return (get_local $list)))
     )
     (return (get_local $list))
   )
 
-  (func $append (export "append") (param $list i32) (param $value i32) (result i32)
+  (func $append (export "append")
+    (param $list i32) (param $value i32)
+    (result i32)
+
     (call $set_tail
-      (call $last (get_local $list))
-      (call $cons (get_local $value) (i32.const 0))
+      (call $last (get_local $list) )
+      (call $cons (get_local $value) (i32.const 0) )
     )
   )
 
+  (func $index_of (export "index_of")
+    (param $string i32) (param $value i32)
+    (result i32)
+
+    (local $length i32)
+    (local $i i32)
+    (set_local $length
+      (i32.add
+        (call $string_length (get_local $string))
+        (i32.const 4)
+    ))
+    (set_local $i (i32.const 4) )
+
+    (loop $again
+      (if (i32.eq (get_local $i) (get_local $length) )
+        (return (i32.const -1) )
+      )
+      (if
+        (i32.eq
+          (i32.load8_u
+            (i32.add (get_local $i) (get_local $string))
+          )
+          (get_local $value)
+        )
+        (return (i32.sub (get_local $i) (i32.const 4) ))
+      )
+      (set_local $i (i32.add (get_local $i) (i32.const 1) ))
+      (br $again)
+    )
+    (i32.const -1)
+  )
+
+  ;; substring?
+
   (export "memory" (memory $memory))
 )
-
-
-
