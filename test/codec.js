@@ -5,15 +5,21 @@ var l = require('../')
 
 function each (list, iter) {
   if(!list) return
+  console.log("pointer", list.toString(16))
   iter(l.head(list))
   each(l.tail(list), iter)
+}
+
+function log (s) {
+  console.log(s)
+  return s
 }
 
 function toArrays (list) {
   var a = []
   each(list, function (e) {
-    if(l.is_string(e)) a.push(l.read(e))
-    else               a.push(toArrays(e))
+    if(l.is_string(e)) a.push(log(l.read(e)))
+    else               a.push(log(toArrays(e)))
   })
   return a
 }
@@ -30,12 +36,19 @@ var src2ast = [
   {src:'((()))', ast:[[[]]]},
   {src:'(() ())', ast:[[],[]]},
   {src:'(h)', ast:['h']},
+  {src:'(ab)', ast:['ab',]},
   {src:'(h 1 2)', ast:['h', '1', '2']},
   {src:'(h (n 1 2))', ast:['h', ['n', '1', '2']]},
 
   {src:'(hello)', ast:['hello']},
   {src:'(hello 1 2)', ast:['hello', '1', '2']},
   {src:'(hello (nest 1 2))', ast:['hello', ['nest', '1', '2']]},
+  {
+    src:'(hello \n;;comments!\n(nest 1 2))',
+    ast:['hello', ['nest', '1', '2']],
+    out: '(hello (nest 1 2))'
+  },
+  {src:'(hello $nest "s p a c e")', ast:['hello', '$nest', '"s p a c e"']},
   {src:'(hello $nest "string \\" escape")', ast:['hello', '$nest', '"string \\" escape"']},
 ]
 
@@ -150,16 +163,13 @@ tape('invert', function (t) {
   t.end()
 })
 
-src2ast.slice(0, 7).forEach(function (e) {
-//var e = src2ast[0]
+src2ast.forEach(function (e) {
   tape('PARSE:'+e.src, function (t) {
     var ast = l.parse(l.write(e.src))
     t.deepEqual(toArrays(ast), e.ast, 'parse to expected ast')
-    t.equal(codec.stringify(ast), e.src, 'stringify back to src')
+    t.equal(codec.stringify(ast), e.out || e.src, 'stringify back to src')
     t.end()
   })
 })
-
-
 
 
