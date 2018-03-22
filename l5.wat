@@ -16,6 +16,7 @@
 
   (import "console" "log" (func $log (param i32)))
   (import "console" "err_char" (func $err_char (param i32)))
+  (import "error" "throw" (func $_throw (param i32)))
 
   (global $free (mut i32) (i32.const 16))
   (global $root (mut i32) (i32.const 0))
@@ -61,6 +62,14 @@
     (call $cell (get_local $head) (get_local $tail))
   )
 
+  (func $is_cons (export "is_cons") (param $cons i32) (result i32)
+    ;; can be 0, 1, 2, 3. 1 if that cell is a pointer (0 if i32 value)
+    (i32.lt_u
+      (i32.and (i32.load (get_local $cons)) (i32.const 0x7000000))
+      (i32.const 0x4000000)
+    )
+  )
+
   (func $is_string (export "is_string") (param $str i32) (result i32)
     (i32.eq
       (i32.and (i32.load (get_local $str)) (i32.const 0x7000000))
@@ -68,12 +77,8 @@
     )
   )
 
-  (func $is_cons (export "is_cons") (param $cons i32) (result i32)
-    ;; can be 0, 1, 2, 3. 1 if that cell is a pointer (0 if i32 value)
-    (i32.lt_u
-      (i32.and (i32.load (get_local $cons)) (i32.const 0x7000000))
-      (i32.const 0x4000000)
-    )
+  (func $is_int (param $ptr i32) (result i32)
+    (i32.eq (i32.load (get_local $ptr)) (i32.const 0x5000000) )
   )
 
   (func $head (export "head") (param $list i32) (result i32)
@@ -108,6 +113,55 @@
       (call $cell (call $head (get_local $list)) (i32.const 0))
       (call $tail (get_local $list))
     )
+  )
+
+  ;; --- ERROR HANDLING ----
+  ;;
+  ;; this is imported, basically kills everything via javascript
+
+  (func $throw (export "throw") (param $code i32)
+    (call $err_char (get_local $code))
+    (call $_throw (get_local $code))
+  )
+  ;; --- NUMBERS --- (just int32 so far) ------------------------
+
+  (func $int (export "int") (param $value i32) (result i32)
+    (local $r i32)
+    (i32.store
+      (tee_local $r (call $cons (get_local $value) (i32.const 0)))
+      (i32.const 0x5000000) ;;tag as a number
+    )
+    (i32.store
+      (i32.add (get_local $r) (i32.const 4))
+      (get_local $value) ;;tag as a number
+    )
+    (get_local $r)
+  )
+
+  (func $int_value (export "int_value") (param $n i32) (result i32)
+    (if
+      (call $is_int (get_local $n))
+      (return (i32.load (i32.add (get_local $n) (i32.const 4) )))
+      (call $throw (i32.const 1)) ;; raise an error
+    )
+    (unreachable)
+  )
+
+  (func $add_i32 (param $args i32) (result i32)
+    (if (i32.eqz (call $tail (get_local $args)))
+      (return (call $int_value
+        (call $head (get_local $args))
+      ))
+      (return (i32.add
+        (call $int_value (call $head (get_local $args)))
+        (call $add_i32 (call $tail (get_local $args)))
+      ))
+    )
+    (unreachable)
+  )
+
+  (func $add (export "add") (param $args i32) (result i32)
+    (call $int (call $add_i32 (get_local $args)))
   )
 
   ;; --- STRINGS -------------------------------------------------
@@ -217,8 +271,36 @@
       (return (i32.const 0))
     )
     (return (i32.const 0))
-;;    (unreachable)
   )
+
+;; ----
+
+(func $call_core (export "call_core") (param $expr i32) (result i32)
+  (local $char i32)
+  (if
+    (i32.ne (call $string_length (get_local $expr)) (i32.const 1))
+    (return (i32.const -1)) ;; make an error!
+  )
+  (set_local $char
+    (i32.load8_u (i32.add
+        (call $head (get_local $expr)) (i32.const 4)
+    ))
+  )
+  (if (i32.eq (get_local $char) (i32.const 43))
+    (return (call $add (call $tail (get_local $expr))))
+    (return (i32.const 0))
+  )
+  (i32.const 0)
+)
+
+
+(func $eval (export "eval")
+  (param $code i32) (param $env i32) (result i32)
+  (i32.const -1)
+)
+
+;;
+
 
   ;; /=============================================\
   ;; | PARSER                                      |
@@ -382,4 +464,11 @@
 
   (export "memory" (memory $memory))
 )
+
+
+
+
+
+
+
 
