@@ -34,7 +34,7 @@
 
     (i32.store
       (get_global $free)
-      (i32.const 3) ;; 3 == cons with 2 pointers
+      (i32.const 0x3000000) ;; 3 == cons with 2 pointers
     )
 
     (i32.store
@@ -68,16 +68,16 @@
 
   (func $is_string (export "is_string") (param $str i32) (result i32)
     (i32.eq
-      (i32.and (i32.load (get_local $str)) (i32.const 7))
-      (i32.const 4)
+      (i32.and (i32.load (get_local $str)) (i32.const 0x7000000))
+      (i32.const 0x4000000)
     )
   )
 
   (func $is_cons (export "is_cons") (param $cons i32) (result i32)
     ;; can be 0, 1, 2, 3. 1 if that cell is a pointer (0 if i32 value)
     (i32.lt_u
-      (i32.and (i32.load (get_local $cons)) (i32.const 7))
-      (i32.const 4)
+      (i32.and (i32.load (get_local $cons)) (i32.const 0x7000000))
+      (i32.const 0x4000000)
     )
   )
 
@@ -103,9 +103,11 @@
     (i32.store
       (get_global $free)
       (i32.or
-        (i32.const 4) ;; 4 == cons with 2 pointers
+        (i32.const 0x4000000) ;; 4 == cons with 2 pointers
         ;; and store length in top 2 bits
-        (i32.shl (get_local $length) (i32.const 8))
+        ;;(i32.shl
+        (i32.and (get_local $length) (i32.const 0xffffff))
+        ;;(i32.const 8))
       )
     )
 
@@ -116,7 +118,9 @@
 
   (func $string_length (export "string_length") (param $str i32) (result i32)
     ;; type information, check if this position is really a string
-    (i32.shr_u (i32.load (get_local $str)) (i32.const 8))
+    ;;(i32.shr_u
+    (i32.and (i32.load (get_local $str)) (i32.const 0xffffff))
+    ;;(i32.const 8))
   )
 
   (func $string_write (export "string_write")
