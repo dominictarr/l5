@@ -10,17 +10,15 @@ function append(list, value) {
 }
 
 exports.parse = function parse (s) {
-  var stack = l.cons(0, 0)
-  var tree = null
-  var head = stack
-  var tree = stack
+  var last = l.cons(0,0)
   while(s.length) {
     if(s[0] == '(') {
-      stack = l.cons(head = l.head(l.append(head, l.cons(0, 0))), stack)
+      last = l.cons(last, 0)
       s = s.substring(1)
     }
     else if(s[0] == ')') {
-      head = l.head(stack = l.tail(stack))
+      last = l.reverse(last)
+      last = l.cons(l.tail(last), l.head(last))
       s = s.substring(1)
     }
     else if(/\s/.test(s[0]))
@@ -29,15 +27,15 @@ exports.parse = function parse (s) {
       s = s.substring(s.indexOf('\n'))
     else if('"' === s[0]) {
       var m = /"(?:(?:\\")|[^"])+"/.exec(s)
-      head = append(head, m[0])
+      last = l.cons(l.write(m[0]), last)
       s = s.substring(m[0].length)
     } else {
       var m = /[^\s|(|)]+/.exec(s)
-      head = append(head, m[0])
+      last = l.cons(l.write(m[0]), last)
       s = s.substring(m[0].length)
     }
   }
-  return tree
+  return l.head(last)
 }
 
 function each (list, iter) {
@@ -63,6 +61,12 @@ exports.stringify = function stringify (ast) {
 if(!module.parent) {
   console.log(exports.stringify(exports.parse(require('fs').readFileSync(process.argv[2], 'utf8'))))
 }
+
+
+
+
+
+
 
 
 
