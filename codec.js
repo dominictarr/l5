@@ -13,19 +13,14 @@ exports.parse = function parse (s) {
   var stack = l.cons(0, 0)
   var tree = null
   var head = stack
-
+  var tree = stack
   while(s.length) {
     if(s[0] == '(') {
-      var _head = l.cons(0, 0)
-      if(head) l.append(head, _head)
-      head = _head
-      if(!tree) tree = head
-      stack = l.cons(head, stack)
+      stack = l.cons(head = l.head(l.append(head, l.cons(0, 0))), stack)
       s = s.substring(1)
     }
     else if(s[0] == ')') {
-      stack = l.tail(stack)
-      head = l.head(stack)
+      head = l.head(stack = l.tail(stack))
       s = s.substring(1)
     }
     else if(/\s/.test(s[0]))
@@ -68,4 +63,12 @@ exports.stringify = function stringify (ast) {
 if(!module.parent) {
   console.log(exports.stringify(exports.parse(require('fs').readFileSync(process.argv[2], 'utf8'))))
 }
+
+
+
+
+
+
+
+
 
