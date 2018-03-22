@@ -1,9 +1,13 @@
 var fs = require('fs'), path = require('path')
 var wasm = fs.readFileSync(path.join(__dirname, './l5.wasm'))
-
+var codec = require('./codec')
 var m = WebAssembly.Module(wasm)
 var instance = WebAssembly.Instance(m, {console: {
-  log: function (n) { console.log("LOG", n, String.fromCodePoint(n)) }
+  err_char: function (n) { console.log("LOG:char", n, String.fromCodePoint(n)) },
+  err_ptr: function (n) { console.log("LOG:ptr", n, String.fromCodePoint(n)) },
+  log: function (list) {
+    console.log(codec.stringify(list))
+  }
 }})
 
 var buffer = new Buffer(instance.exports.memory.buffer)
@@ -24,5 +28,8 @@ exports.read = function (str) {
   var b = new Buffer(len)
   return buffer.slice(str+4, str+len+4).toString('utf8')
 }
+
+
+
 
 

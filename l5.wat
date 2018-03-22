@@ -211,8 +211,64 @@
     (call $cons (i32.const 0) (i32.const 0))
   )
 
-  ;; greater than 42, or $=36, consider as names
+  ;;retrive an item in a list that points to param
+;;  (func $find_eq (param $list i32) (param $value i32) (result i32)
+;;    (if
+;;      (i32.eq (call $head (get_local $list)) (get_local $value) )
+;;      (then (return (get_local $list)))
+;;      (else (return (call $find_eq
+;;            (call $tail (get_local $list))
+;;            (get_local $value)
+;;      )))
+;;    )
+;;  )
 
+  ;;compare two strings
+  (func $string_equal (export "string_equal")
+    (param $a i32) (param $b i32) (result i32)
+    (local $end i32)
+
+    (if
+      (i32.ne
+        (tee_local $end (call $string_length (get_local $a)))
+        (call $string_length (get_local $b))
+      )
+      (return (i32.const 0))
+    )
+    ;; naughty, use $a and $b as pointers!
+    ;; and save a few ops to get $end correct
+    (set_local $end (i32.add
+      (get_local $end)
+      (tee_local $a (i32.add (get_local $a) (i32.const 4)) )
+    ))
+    (set_local $b (i32.add (get_local $b) (i32.const 4)) )
+    (loop $more
+      (if
+        (i32.eq (get_local $a) (get_local $end))
+        (return (i32.const 1))
+      )
+      (if
+        (i32.ne
+          (i32.load8_u (get_local $a))
+          (i32.load8_u (get_local $b))
+        )
+        (return (i32.const 0))
+      )
+      (set_local $a (i32.add (get_local $a) (i32.const 1) ))
+      (set_local $b (i32.add (get_local $b) (i32.const 1) ))
+      (br $more)
+    )
+    (unreachable)
+  )
+
+  ;; /=============================================\
+  ;; | PARSER                                      |
+  ;; |                                             |
+  ;; | here comes the uglyist part.                |
+  ;; | once I have macros this can be moved out... |
+  ;; \=============================================/
+
+  ;; greater than 42, or $=36, consider as names
   (func $is_name_char (param $char i32) (result i32)
     (i32.and
       (i32.ne (get_local $char) (i32.const 59)) ;; ";" (comment)
@@ -378,4 +434,5 @@
 
   (export "memory" (memory $memory))
 )
+
 
