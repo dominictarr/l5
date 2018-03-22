@@ -15,6 +15,7 @@
   ;; just point to a boxed number.
 
   (import "console" "log" (func $log (param i32)))
+  (import "console" "err_char" (func $err_char (param i32)))
 
   (global $free (mut i32) (i32.const 16))
   (global $root (mut i32) (i32.const 0))
@@ -194,6 +195,21 @@
     (unreachable)
   )
 
+  (func $string_eq_char (export "string_eq_char")
+    (param $str i32) (param $char i32) (result i32)
+    (call $err_char (get_local $char))
+    (if
+      (i32.eq (call $string_length (get_local $str)) (i32.const 1))
+      (return (i32.eq
+        (get_local $char)
+        (i32.load8_u (i32.add (get_local $str) (i32.const 4) ))
+      ))
+      (return (i32.const 0))
+    )
+    (return (i32.const 0))
+;;    (unreachable)
+  )
+
   ;; /=============================================\
   ;; | PARSER                                      |
   ;; |                                             |
@@ -356,4 +372,6 @@
 
   (export "memory" (memory $memory))
 )
+
+
 
