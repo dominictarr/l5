@@ -29,6 +29,10 @@ var src2ast = [
   {src:'(())', ast:[[]]},
   {src:'((()))', ast:[[[]]]},
   {src:'(() ())', ast:[[],[]]},
+  {src:'(h)', ast:['h']},
+  {src:'(h 1 2)', ast:['h', '1', '2']},
+  {src:'(h (n 1 2))', ast:['h', ['n', '1', '2']]},
+
   {src:'(hello)', ast:['hello']},
   {src:'(hello 1 2)', ast:['hello', '1', '2']},
   {src:'(hello (nest 1 2))', ast:['hello', ['nest', '1', '2']]},
@@ -146,13 +150,16 @@ tape('invert', function (t) {
   t.end()
 })
 
-src2ast.forEach(function (e) {
+src2ast.slice(0, 7).forEach(function (e) {
 //var e = src2ast[0]
   tape('PARSE:'+e.src, function (t) {
-    t.deepEqual(toArrays(codec.parse(e.src)), e.ast, 'parse to expected ast')
-    t.equal(codec.stringify(codec.parse(e.src)), e.src, 'stringify back to src')
+    var ast = l.parse(l.write(e.src))
+    t.deepEqual(toArrays(ast), e.ast, 'parse to expected ast')
+    t.equal(codec.stringify(ast), e.src, 'stringify back to src')
     t.end()
   })
 })
+
+
 
 
