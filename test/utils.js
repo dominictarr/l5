@@ -22,7 +22,18 @@ tape('string_length', function (t) {
   t.equal(l.string_length(s), 5)
 
   t.end()
+})
 
+tape('string eq char', function (t) {
+  var chars = 'ABDCefgh1234567890 ~!@#$%^&*(){}+?/=[]'
+  for(var i = 0; i < chars.length; i++) {
+    var s = l.write(chars[i])
+    t.equal(l.is_string(s), 1,'(is_string '+chars[i]+')')
+    t.equal(l.string_length(s), 1, '(string_length '+chars[i]+')')
+    t.equal(l.string_eq_char(s, chars[i].codePointAt(0)), 1, '(string_eq_char '+chars[i]+')')
+    t.equal(l.string_eq_char(s, (chars[i-1] || '').codePointAt(0)), 0, '(string_eq_char '+chars[i]+')')
+  }
+  t.end()
 })
 
 tape('string equals', function (t) {
@@ -33,8 +44,4 @@ tape('string equals', function (t) {
   })
   t.end()
 })
-
-
-
-
 
