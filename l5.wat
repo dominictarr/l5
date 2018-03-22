@@ -34,7 +34,7 @@
   ;; creating cells, checking types, manipulating lists
 
   ;; cons with 2 pointers
-  (func $cons (export "cons") (param $head i32) (param $tail i32) (result i32)
+  (func $cell (export "cell") (param $head i32) (param $tail i32) (result i32)
 
     (i32.store
       (get_global $free)
@@ -52,6 +52,12 @@
     )
 
     (call $claim (i32.const 12))
+  )
+
+  (func $cons (export "cons")
+    (param $head i32) (param $tail i32)
+    (result i32)
+    (call $cell (get_local $head) (get_local $tail))
   )
 
   (func $is_string (export "is_string") (param $str i32) (result i32)
@@ -90,7 +96,7 @@
   (func $swap (param $a i32) (param $b i32) (result i32)
     (if (i32.eqz (get_local $b)) (return (get_local $a)))
     (call $swap
-      (call $cons (call $head (get_local $b)) (get_local $a))
+      (call $cell (call $head (get_local $b)) (get_local $a))
       (call $tail (get_local $b))
     )
   )
@@ -98,7 +104,7 @@
   (func $reverse (export "reverse") (param $list i32) (result i32)
     (if (i32.eqz (get_local $list)) (return (i32.const 0)))
     (call $swap
-      (call $cons (call $head (get_local $list)) (i32.const 0))
+      (call $cell (call $head (get_local $list)) (i32.const 0))
       (call $tail (get_local $list))
     )
   )
@@ -233,124 +239,113 @@
       )
       ;; read the next character
       (set_local $char (i32.load8_u (get_local $ptr)))
-      (if (i32.eqz (get_local $state)) (then
-          (if (i32.eq (get_local $char) (i32.const 40) )
+      (if (i32.eqz (get_local $state))
+        (if (i32.eq (get_local $char) (i32.const 40) )
+          ;;HANDLE "(" open bracket
+          (set_local $last (call $cell
+            (get_local $last) (i32.const 0)
+          ))
+          (if (i32.eq (get_local $char) (i32.const 41) )
             (then
-              ;;HANDLE "(" open bracket
-              (set_local $last (call $cons
-                (get_local $last)
-                (i32.const 0)
+              ;;HANDLE ")" open bracket
+              (set_local $last (call $reverse (get_local $last)))
+              (set_local $last (call $cell
+                  (call $tail (get_local $last))
+                  (call $head (get_local $last))
               ))
             )
-            (else (if (i32.eq (get_local $char) (i32.const 41) )
+            (if (call $is_name_char (get_local $char))
               (then
-                ;;HANDLE ")" open bracket
-                (set_local $last (call $reverse (get_local $last)))
-                (set_local $last (call $cons
-                    (call $tail (get_local $last))
-                    (call $head (get_local $last))
-                ))
+                ;; switch to name state
+                (set_local $state (i32.const 1))
+                (set_local $str (get_local $ptr))
               )
-              (else (if (call $is_name_char (get_local $char))
+              (if
+                (i32.eq (get_local $char) (i32.const 34))
                 (then
-                  ;; switch to name state
-                  (set_local $state (i32.const 1))
+                  ;;fallthrough to quoted string state
                   (set_local $str (get_local $ptr))
+                  (set_local $state (i32.const 3))
                 )
-                (else (if
-                    (i32.eq (get_local $char) (i32.const 34))
+                (if
+                    (i32.eqz (call $is_whitespace (get_local $char)))
                     (then
-                      ;;fallthrough to quoted string state
-                      (set_local $str (get_local $ptr))
-                      (set_local $state (i32.const 3))
+                      ;; must be a comment
+                      (set_local $state (i32.const 2))
+                      (br $more)
                     )
-                    (else (if
-                        (i32.eqz (call $is_whitespace (get_local $char)))
-                        (then
-                          ;; must be a comment
-                          (set_local $state (i32.const 2))
-                          (br $more)
-                        )
-                    ))
-                ))
-              ))
-            ))
-          )
-      ))
-      (if (i32.eq (get_local $state) (i32.const 1)) (then
-          ;; if not name char anymore, create the string
-
-
-          (if (i32.eqz (call $is_name_char (get_local $char))) (then
-            (set_local $last
-              (call $cons
-                (call $copy_to_string (get_local $str) (get_local $ptr))
-                (get_local $last)
-              )
-            )
-
-            ;; write into the string
-
-            (set_local $state (i32.const 0))
-
-            ;; go back to the top of the loop,
-            ;; because we need to handle this char not increment
-            (br $more)
-          ))
-      ))
-      ;; handle comments
-      (if (i32.eq (get_local $state) (i32.const 2)) (then
-          ;; if not name char anymore, create the string
-
-
-          (if (i32.eq (get_local $char) (i32.const 10)) (then
-
-            ;; write into the string
-
-            (set_local $state (i32.const 0))
-            (br $more)
-          ))
-      ))
-      ;; handle quoted strings
-      (if (i32.eq (get_local $state) (i32.const 3)) (then
-          ;; if not name char anymore, create the string
-
-          (if (i32.eq (get_local $char) (i32.const 92))
-            (then
-              (set_local $state (i32.const 4))
-            )
-            (else
-              (if (i32.and
-                  (i32.ne (get_local $str) (get_local $ptr))
-                  (i32.eq (get_local $char) (i32.const 34))
-                )
-                (then
-                  (set_local $last
-                    (call $cons
-                      (call $copy_to_string
-                        (get_local $str)
-                        ;; ptr + 1 because we havn't stepped past yet
-                        (i32.add (get_local $ptr) (i32.const 1))
-                      )
-                      (get_local $last)
-                    )
-                  )
-
-                ;; write into the string
-
-                  (set_local $state (i32.const 0))
                 )
               )
             )
           )
         )
-        ;; escapes in quoted strings!
-        (else (if (i32.eq (get_local $state) (i32.const 4))
-          (then
-            ;; go back to string state, after this loop
-            (set_local $state (i32.const 3))
+      )
+      (if (i32.eq (get_local $state) (i32.const 1))
+        ;; if not name char anymore, create the string
+
+
+        (if (i32.eqz (call $is_name_char (get_local $char))) (then
+          (set_local $last
+            (call $cons
+              (call $copy_to_string (get_local $str) (get_local $ptr))
+              (get_local $last)
+            )
           )
+
+          ;; write into the string
+
+          (set_local $state (i32.const 0))
+
+          ;; go back to the top of the loop,
+          ;; because we need to handle this char not increment
+          (br $more)
         ))
+      )
+      ;; handle comments
+      (if (i32.eq (get_local $state) (i32.const 2))
+        ;; if not name char anymore, create the string
+
+        (if (i32.eq (get_local $char) (i32.const 10))
+          (then
+
+            ;; write into the string
+
+            (set_local $state (i32.const 0))
+            (br $more)
+        ))
+      )
+      ;; handle quoted strings
+      (if (i32.eq (get_local $state) (i32.const 3))
+        ;; if not name char anymore, create the string
+        (if (i32.eq (get_local $char) (i32.const 92))
+          (set_local $state (i32.const 4))
+            (if (i32.and
+                (i32.ne (get_local $str) (get_local $ptr))
+                (i32.eq (get_local $char) (i32.const 34))
+              )
+              (then
+                ;; write into the string
+                (set_local $last
+                  (call $cons
+                    (call $copy_to_string
+                      (get_local $str)
+                      ;; ptr + 1 because we havn't stepped past yet
+                      (i32.add (get_local $ptr) (i32.const 1))
+                    )
+                    (get_local $last)
+                  )
+                )
+
+                ;; go back into () state
+                (set_local $state (i32.const 0))
+              )
+            )
+          )
+        ;; escapes in quoted strings!
+        (if (i32.eq (get_local $state) (i32.const 4))
+          ;; go back to string state, after this loop
+          (set_local $state (i32.const 3))
+        )
       )
 
       (set_local $ptr (i32.add (get_local $ptr) (i32.const 1)))
