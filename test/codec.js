@@ -71,17 +71,6 @@ tape('cons', function (t) {
   t.end()
 })
 
-//function swap (a, b) {
-//  if(!b) return a
-//  return swap(l.cons(l.head(b), a), l.tail(b))
-//}
-//
-//function reverse (list) {
-//  return l.reverse(list)
-//  if(!list) return list
-//  return swap(l.cons(l.head(list), 0), l.tail(list))
-//}
-//
 tape('reverse', function (t) {
   t.deepEqual(toCons(l.reverse(0)), null)
 
@@ -107,19 +96,43 @@ tape('reverse', function (t) {
   t.end()
 })
 
-return
-tape('reverse', function (t) {
-  var h = l.cons(0, 0)
-  h = l.cons(0, h)
-  h = l.cons(0, h)
-  h = l.cons(h, 0)
-  h = l.cons(0, h)
-  //then invert the tree
-  h = reverse(h)
-  h = l.set_head(l.head(h), l.tail(h))
-  h = reverse(h)
-//  h = l.set_head(l.head(h), l.tail(h))
+/*
+  I was struggling to write the parser, and I had the idea
+  to built the tree backwards then invert it. this has
+  the neat implication that it's totally functional.
+  and we only need a single pointer to track the entire structure.
 
+  start off with a cons a=(())
+  when we append an item to this, `a = cons(item, a)`
+  now we want to create a new sub list, it's `a = cons(a, 0)`
+  to get back out of the sublist,
+  we do: `cons(tail(a = reverse(a)), head(a))`
+  while parsing, an empty list is represented as a (0,0) pair
+  but when we are done, 0 is the empty list (0,0) is (())
+*/
+
+function invert (list) {
+  list = l.reverse(list)
+  //the head of the list points to the parent list
+  //so create a new cell which contains the list and points
+  //back to the current list
+  return l.cons(l.tail(list), l.head(list))
+}
+
+tape('invert', function (t) {
+  var h = l.cons(l.write('a'), 0)
+  h = l.cons(l.write('b'), h)
+  h = l.cons(l.write('c'), h)
+  t.deepEqual(toCons(h), {head: 'c', tail: {head: 'b', tail: {head: 'a', tail: null}}})
+  t.deepEqual(toArrays(h), ['c','b','a'])
+//  h = l.cons(h, 0)
+//  h = l.cons(0, h)
+//  //then invert the tree
+//  h = reverse(h)
+//  h = l.set_head(l.head(h), l.tail(h))
+//  h = reverse(h)
+////  h = l.set_head(l.head(h), l.tail(h))
+  t.end()
 })
 
 src2ast.slice(0, 4).forEach(function (e) {
@@ -130,6 +143,11 @@ src2ast.slice(0, 4).forEach(function (e) {
     t.end()
   })
 })
+
+
+
+
+
 
 
 
