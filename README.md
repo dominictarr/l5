@@ -73,50 +73,54 @@ will probably be used for garbage collection)
 
 ## api
 
-### cons (a, b)
+### cons (a, b) => pointer
 
 create a cons with `a` and `b` as cells. (both are i32 pointers)
 
-### is_cons (c)
+### is_cons (c) => 0 || 1
 
 returns 1 if `c` is a cons
 
-### is_string (s)
+### is_string (s) => 0 || 1
 
 return 1 if `s` is a string
 
-### string_length (s)
+### string_length (s) => number (javascript)
 
 returns the length of the string.
 
-### head (c)
+### head (c) => pointer
 
 return the value at the head of the cons `c`.
 
-### tail (c)
+### tail (c) => value
 
 return the value at the tail of the cons `c`
 
-### set_head (c, v)
+### set_head (c, v) => c
 
 sets the value at the head of the cons `c` to `v`,
 `c` is returned.
 
-### set_tail (c, v)
+### set_tail (c, v) => v
 
 sets the value at the tail of the cons `c` to `v`
 `v` is returned.
 
-### write (string) => s
+### write (string) => string (pointer)
 
 pass a string from javascript land into wasm land. returns pointer
 to s
 
-### read (s)
+### read (s) => string (javascript string)
 
 extracts a string from wasm land to javascript land, takes a pointer
 returned by `write` (or extracted from a cons)
 throws if s is not a string.
+
+### parse (s) => l
+
+parse a string into an ast
 
 
 ## License
