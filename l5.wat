@@ -11,6 +11,9 @@
   ;; -- 3) ast root
   ;; -- 4) function definitions
 
+  ;; second throught: that is too clever.
+  ;; just point to a boxed number.
+
   (import "console" "log" (func $log (param i32)))
 
   (global $free (mut i32) (i32.const 16))
@@ -247,9 +250,6 @@
       )
       ;; read the next character
       (set_local $char (i32.load8_u (get_local $ptr)))
-
- ;;     (call $log (get_local $char))
-
       (if (i32.eqz (get_local $state)) (then
           (if (i32.eq (get_local $char) (i32.const 40) )
             (then
@@ -284,18 +284,16 @@
                     (else (if
                         (i32.eqz (call $is_whitespace (get_local $char)))
                         (then
-                          (call $log (get_local $char))
-                          ;; assuming this is a comment
+                          ;; must be a comment
                           (set_local $state (i32.const 2))
                           (br $more)
                         )
                     ))
                 ))
-                ;;ignore whitespace?!
               ))
             ))
           )
-      ));;if
+      ))
       (if (i32.eq (get_local $state) (i32.const 1)) (then
           ;; if not name char anymore, create the string
 
@@ -334,7 +332,6 @@
       (if (i32.eq (get_local $state) (i32.const 3)) (then
           ;; if not name char anymore, create the string
 
-          (call $log (get_local $char))
           (if (i32.eq (get_local $char) (i32.const 92))
             (then
               (set_local $state (i32.const 4))
@@ -378,9 +375,6 @@
     )
     (unreachable)
   )
-
-
-  ;; substring?
 
   (export "memory" (memory $memory))
 )
