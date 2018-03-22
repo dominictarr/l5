@@ -9,7 +9,11 @@ function append(list, value) {
   return l.append(list, value)
 }
 
-exports.parse = function parse (s) {
+exports.parse = function (s) { return l.parse(l.write(s)) }
+/*
+//previous javascript wat parser.
+//it's a lot less verbose than raw wat.
+function parse (s) {
   var last = l.cons(0,0)
   while(s.length) {
     if(s[0] == '(') {
@@ -36,7 +40,7 @@ exports.parse = function parse (s) {
     }
   }
   return l.head(last)
-}
+}*/
 
 function each (list, iter) {
   if(!list) return
@@ -61,18 +65,4 @@ exports.stringify = function stringify (ast) {
 if(!module.parent) {
   console.log(exports.stringify(exports.parse(require('fs').readFileSync(process.argv[2], 'utf8'))))
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
