@@ -45,6 +45,22 @@
     (call $claim (i32.const 12))
   )
 
+  (func $swap (param $a i32) (param $b i32) (result i32)
+    (if (i32.eqz (get_local $b)) (return (get_local $a)))
+    (call $swap
+      (call $cons (call $head (get_local $b)) (get_local $a))
+      (call $tail (get_local $b))
+    )
+  )
+
+  (func $reverse (export "reverse") (param $list i32) (result i32)
+    (if (i32.eqz (get_local $list)) (return (i32.const 0)))
+    (call $swap
+      (call $cons (call $head (get_local $list)) (i32.const 0))
+      (call $tail (get_local $list))
+    )
+  )
+
   (func $is_string (export "is_string") (param $str i32) (result i32)
     (i32.eq
       (i32.and (i32.load (get_local $str)) (i32.const 7))
@@ -148,7 +164,84 @@
     (i32.const -1)
   )
 
+  (func $empty (result i32)
+    (call $cons (i32.const 0) (i32.const 0))
+  )
+
+  (func $parse (export "parse") (param $src i32) (result i32)
+    (local $max i32)
+    (local $ptr i32)
+    (local $char i32)
+    (local $ast i32)
+    (local $state i32)
+    (local $stack i32)
+    (local $cur i32)
+    ;; start of the src string
+    (set_local $ptr (i32.add (get_local $src) (i32.const 4)))
+    ;; end of the string (1 past the last char)
+    (set_local $max
+      (i32.add
+        (i32.add (get_local $src) (call $string_length (get_local $src)))
+        (i32.const 4)
+    ))
+    (set_local $state (i32.const 0))
+    (set_local $cur (tee_local $ast (tee_local $stack (call $empty))))
+    (loop $more
+      (if (i32.gt_u (get_local $ptr) (get_local $max))
+        (return (get_local $ast))
+      )
+      ;; read the next character
+      (set_local $char (i32.load8_u (get_local $ptr)))
+      (if (i32.eq (get_local $state) (i32.const 0))
+        (then
+
+                 ;; "("
+          (if (i32.eq (get_local $char) (i32.const 40) )
+            (then
+              ;;(set $stack (cons
+              ;;  (set $cur (head(append($cur (cons 0 0))
+              ;;  $stack
+              ;;))
+              (set_local $stack
+                (call $cons
+                  (tee_local $cur (call $head
+                      (call $append (get_local $cur) (call $empty))
+                  ))
+                  (get_local $stack)
+                )
+              )
+              ;; note: append iterates to the last item before appending
+              ;; but if we set_head on the stack we wouldn't need $head.
+
+            ) ;; then
+
+            (else (if (i32.eq (get_local $char) (i32.const 41) )
+
+                (then
+                  ;; (set $cur (head (set $stack (tail $stack))))
+                  (set_local $cur (call $head
+                      (tee_local $stack (call $tail (get_local $stack)))
+                  ))
+
+                );;then
+;;                (else (return (i32.const -1))) ;; error!
+            )) ;;else if
+
+          ;; ")"
+          ;; " " (space)
+          ) ;;if
+        ) ;;then
+      ) ;;if
+
+      (set_local $ptr (i32.add (get_local $ptr) (i32.const 1)))
+      (br $more)
+    )
+    (unreachable)
+  )
+
+
   ;; substring?
 
   (export "memory" (memory $memory))
 )
+
