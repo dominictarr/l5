@@ -12,10 +12,8 @@ function each (list, iter) {
 function toArrays (list) {
   var a = []
   each(list, function (e) {
-    if('string' === typeof e)
-      a.push(e)
-    else
-      a.push(toArrays(e))
+    if(l.is_string(e)) a.push(l.read(e))
+    else               a.push(toArrays(e))
   })
   return a
 }
@@ -30,7 +28,8 @@ var src2ast = [
   {src:'()', ast:[]},
   {src:'(())', ast:[[]]},
   {src:'((()))', ast:[[[]]]},
-  {src:'(()())', ast:[[],[]]},
+  {src:'(() ())', ast:[[],[]]},
+  {src:'(hello)', ast:['hello']},
   {src:'(hello 1 2)', ast:['hello', '1', '2']},
   {src:'(hello (nest 1 2))', ast:['hello', ['nest', '1', '2']]},
   {src:'(hello $nest "string \\" escape")', ast:['hello', '$nest', '"string \\" escape"']},
@@ -120,22 +119,34 @@ function invert (list) {
 }
 
 tape('invert', function (t) {
-  var h = l.cons(l.write('a'), 0)
+  var h = l.cons(0, 0) //starts out a empty cons
+  h = l.cons(l.write('a'), h)
   h = l.cons(l.write('b'), h)
   h = l.cons(l.write('c'), h)
-  t.deepEqual(toCons(h), {head: 'c', tail: {head: 'b', tail: {head: 'a', tail: null}}})
-  t.deepEqual(toArrays(h), ['c','b','a'])
-//  h = l.cons(h, 0)
-//  h = l.cons(0, h)
-//  //then invert the tree
-//  h = reverse(h)
-//  h = l.set_head(l.head(h), l.tail(h))
-//  h = reverse(h)
-////  h = l.set_head(l.head(h), l.tail(h))
+  t.deepEqual(toCons(h), {head: 'c', tail: {head: 'b', tail: {head: 'a', tail: {head: null, tail: null}}}})
+  t.deepEqual(toArrays(h), ['c','b','a', []])
+  h = l.cons(h, 0)
+  t.deepEqual(toCons(h), 
+    {
+      head:
+        {head: 'c', tail:
+          {head: 'b', tail:
+            {head: 'a', tail:
+              {head: null, tail: null}}}},
+      tail: null
+    }
+  )
+
+  h = invert(h)
+  t.deepEqual(toCons(h), {head: null, tail: {head: 'c', tail: {head: 'b', tail: {head: 'a', tail: {head: null, tail: null}}}}})
+  t.deepEqual(toArrays(h), [[], 'c','b','a', []])
+  h = l.cons(l.write('d'), h)
+  h = l.head(invert(h))
+  t.deepEqual(toArrays(h), ['a', 'b', 'c', [], 'd'])
   t.end()
 })
 
-src2ast.slice(0, 4).forEach(function (e) {
+src2ast.forEach(function (e) {
 //var e = src2ast[0]
   tape('PARSE:'+e.src, function (t) {
     t.deepEqual(toArrays(codec.parse(e.src)), e.ast, 'parse to expected ast')
@@ -143,20 +154,5 @@ src2ast.slice(0, 4).forEach(function (e) {
     t.end()
   })
 })
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
