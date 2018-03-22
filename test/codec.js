@@ -50,6 +50,12 @@ var src2ast = [
   },
   {src:'(hello $nest "s p a c e")', ast:['hello', '$nest', '"s p a c e"']},
   {src:'(hello $nest "string \\" escape")', ast:['hello', '$nest', '"string \\" escape"']},
+  {src:';;comment at start\n (module)', ast: ['module'], out: '(module)'},
+  {
+    src: '(module (export "memory" (memory $memory)))    \n\n\n',
+    ast: ['module', ['export' ,'"memory"', ['memory', '$memory']]],
+    out: '(module (export "memory" (memory $memory)))'
+  }
 ]
 
 var tape = require('tape')
