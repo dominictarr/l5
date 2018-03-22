@@ -39,9 +39,13 @@ tape('string eq char', function (t) {
 tape('string equals', function (t) {
   strings.forEach(function (a) {
     strings.forEach(function (b) {
-      t.equal(l.string_equal(l.write(a), l.write(b)), +(a === b), 'compare:'+a+', '+b)
+      var _a = l.write(a)
+      t.equal(_a & 3, 0, 'assert that strings are aligned to 4th byte')
+      t.equal(l.string_equal(_a, l.write(b)), +(a === b), 'compare:'+a+', '+b)
     })
   })
   t.end()
 })
+
+
 
