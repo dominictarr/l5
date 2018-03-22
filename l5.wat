@@ -121,9 +121,19 @@
       )
     )
 
-    ;; TODO: round up to next 4 bytes alignment, plus the tag
-
-    (call $claim (i32.add (get_local $length) (i32.const 4)))
+    (call $claim (i32.add
+      (i32.shl
+        (i32.add
+          (i32.shr_u (get_local $length) (i32.const 2))
+          ;; !! (length & 3)
+            (i32.eqz (i32.eqz
+              (i32.and (get_local $length) (i32.const 3))
+            ))
+        )
+        (i32.const 2)
+      )
+      (i32.const 4)
+    ))
   )
 
   (func $string_length (export "string_length") (param $str i32) (result i32)
@@ -372,6 +382,4 @@
 
   (export "memory" (memory $memory))
 )
-
-
 
