@@ -49,5 +49,37 @@ tape('test nested eval', function (t) {
   t.end()
 })
 
+tape('variables!', function (t) {
+
+  //t.equal(l.int_value(
+  console.log(codec.stringify(l.find_key(
+    l.write('$five'),
+    l.parse(l.write('(($three 3) ($five 5))'))
+  )))
+//), 5)
+
+//  t.equal(l.int_value(
+
+  console.log(codec.stringify(
+    l.eval(
+      l.parse(l.write('(+ $three $five)')),
+      //env is just a list of string: value pairs
+      l.parse(l.write('(($three 3) ($five 5))'))
+    )
+  ))
+
+  t.equal(l.int_value(
+    l.eval(
+      l.parse(l.write('(+ $three $five)')),
+      //env is just a list of string: value pairs
+      l.parse(l.write('(($three 3) ($five 5))'))
+    )
+  ), 8, '(+ $three $five)')
+  t.end()
+})
+
+
+
+
 
 
