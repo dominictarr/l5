@@ -275,28 +275,51 @@
 
   ;; ----
 
-  (func $call_core (export "call_core") (param $expr i32) (result i32)
-    (local $char i32)
-    (if
-      (i32.ne (call $string_length (get_local $expr)) (i32.const 1))
-      (return (i32.const -1)) ;; make an error!
+  (func $call_core (export "call_core")
+    (param $fn_index i32) (param $args i32) (result i32)
+    (if (i32.eq (get_local $fn_index) (i32.const 43))
+      (return (call $add (get_local $args)))
+      (return (i32.const -1))
     )
-    (set_local $char
-      (i32.load8_u (i32.add
-          (call $head (get_local $expr)) (i32.const 4)
-      ))
-    )
-    (if (i32.eq (get_local $char) (i32.const 43))
-      (return (call $add (call $tail (get_local $expr))))
-      (return (i32.const 0))
-    )
-    (i32.const 0)
+    (unreachable)
   )
 
+  (func $string_first_char (export "string_first_char")
+    (param $str i32) (result i32)
+    (i32.load8_u (i32.add (i32.const 4) (get_local $str)))
+  )
+
+  (func $map_eval (export "map_eval")
+    (param $list i32) (param $env i32) (result i32)
+    (if
+      (i32.eqz (get_local $list))
+      (return (i32.const 0))
+      (return (call $cons
+        (call $eval (call $head (get_local $list)) (get_local $env))
+        (call $map_eval (call $tail (get_local $list)) (get_local $env))
+      ))
+    )
+    (unreachable)
+  )
 
   (func $eval (export "eval")
-    (param $code i32) (param $env i32) (result i32)
-    (i32.const -1)
+    (param $src i32) (param $env i32) (result i32)
+    (if
+      (call $is_cons (get_local $src)) ;; a string or number
+      (then
+        (return (call $call_core
+          ;; call core method by it's first character
+          (i32.const 43)
+          (call $string_first_char (call $head (get_local $src)))
+          (call $map_eval
+            (call $tail (get_local $src))
+            (get_local $env)
+          )
+        ))
+      )
+      (return (get_local $src)) ;; literal value
+    )
+    (unreachable)
   )
 
   ;;
