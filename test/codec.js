@@ -19,6 +19,7 @@ function toArrays (list) {
   var a = []
   each(list, function (e) {
     if(l.is_string(e)) a.push(log(l.read(e)))
+    else if(l.is_int(e)) a.push(log(l.int_value(e)))
     else               a.push(log(toArrays(e)))
   })
   return a
@@ -27,6 +28,7 @@ function toArrays (list) {
 function toCons (list) {
   if(list === 0) return null
   if(l.is_string(list)) return l.read(list)
+  if(l.is_int(list)) return l.int_value(list)
   return {head: toCons(l.head(list)), tail: toCons(l.tail(list))}
 }
 
@@ -37,15 +39,16 @@ var src2ast = [
   {src:'(() ())', ast:[[],[]]},
   {src:'(h)', ast:['h']},
   {src:'(ab)', ast:['ab',]},
-  {src:'(h 1 2)', ast:['h', '1', '2']},
-  {src:'(h (n 1 2))', ast:['h', ['n', '1', '2']]},
+  {src:'(h 1 2)', ast:['h', 1, 2]},
+  {src:'(h (n 1 2))', ast:['h', ['n', 1, 2]]},
+  {src:'(h (n 1000 123456))', ast:['h', ['n', 1000, 123456]]},
 
   {src:'(hello)', ast:['hello']},
-  {src:'(hello 1 2)', ast:['hello', '1', '2']},
-  {src:'(hello (nest 1 2))', ast:['hello', ['nest', '1', '2']]},
+  {src:'(hello 1 2)', ast:['hello', 1, 2]},
+  {src:'(hello (nest 1 2))', ast:['hello', ['nest', 1, 2]]},
   {
     src:'(hello \n;;comments!\n(nest 1 2))',
-    ast:['hello', ['nest', '1', '2']],
+    ast:['hello', ['nest', 1, 2]],
     out: '(hello (nest 1 2))'
   },
   {src:'(hello $nest "s p a c e")', ast:['hello', '$nest', '"s p a c e"']},
@@ -159,7 +162,6 @@ tape('invert', function (t) {
       tail: null
     }
   )
-
   h = invert(h)
   t.deepEqual(toCons(h), {head: null, tail: {head: 'c', tail: {head: 'b', tail: {head: 'a', tail: {head: null, tail: null}}}}})
   t.deepEqual(toArrays(h), [[], 'c','b','a', []])
@@ -168,7 +170,6 @@ tape('invert', function (t) {
   t.deepEqual(toArrays(h), ['a', 'b', 'c', [], 'd'])
   t.end()
 })
-
 src2ast.forEach(function (e) {
   tape('PARSE:'+e.src, function (t) {
     var ast = l.parse(l.write(e.src))
@@ -177,5 +178,4 @@ src2ast.forEach(function (e) {
     t.end()
   })
 })
-
 
