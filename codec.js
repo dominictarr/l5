@@ -58,11 +58,13 @@ exports.stringify = function stringify (ast) {
       s +=')'
       return s
     })()
-  : l.read(ast)
+  : l.is_string(ast) ? l.read(ast)
+                     : l.int_value(ast).toString() //must be int
   )
 }
 
 if(!module.parent) {
   console.log(exports.stringify(exports.parse(require('fs').readFileSync(process.argv[2], 'utf8'))))
 }
+
 
