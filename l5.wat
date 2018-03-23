@@ -261,7 +261,6 @@
 
   (func $string_eq_char (export "string_eq_char")
     (param $str i32) (param $char i32) (result i32)
-    (call $err_char (get_local $char))
     (if
       (i32.eq (call $string_length (get_local $str)) (i32.const 1))
       (return (i32.eq
@@ -289,6 +288,16 @@
     (i32.load8_u (i32.add (i32.const 4) (get_local $str)))
   )
 
+  (func $is_variable (param $value i32) (result i32)
+    (i32.and
+      (call $is_string (get_local $value))
+      (i32.eq
+        (call $string_first_char (get_local $value))
+        (i32.const 36)
+      )
+    )
+  )
+
   (func $map_eval (export "map_eval")
     (param $list i32) (param $env i32) (result i32)
     (if
@@ -302,22 +311,50 @@
     (unreachable)
   )
 
+  (func $find_key (export "find_key")
+    (param $key i32) (param $kvlist i32) (result i32)
+    (if
+      (i32.eqz (get_local $kvlist))
+      (return (i32.const 0))
+      (if
+        (call $string_equal
+          (get_local $key)
+          (call $head (call $head (get_local $kvlist)))
+        )
+        ;; if found, return the 2nd item in the list
+        (return (call $head (call $tail (call $head 
+          (get_local $kvlist))
+        )))
+        (return (call $find_key
+          (get_local $key)
+          (call $tail (get_local $kvlist))
+        ))
+      )
+    )
+    (unreachable)
+  )
+
   (func $eval (export "eval")
     (param $src i32) (param $env i32) (result i32)
     (if
       (call $is_cons (get_local $src)) ;; a string or number
-      (then
-        (return (call $call_core
-          ;; call core method by it's first character
-          (i32.const 43)
-          (call $string_first_char (call $head (get_local $src)))
-          (call $map_eval
-            (call $tail (get_local $src))
-            (get_local $env)
-          )
-        ))
+      (return (call $call_core
+        ;; call core method by it's first character
+        (call $string_first_char (call $head (get_local $src)))
+        (call $map_eval
+          (call $tail (get_local $src))
+          (get_local $env)
+        )
+      ))
+      (if
+        (call $is_int (get_local $src))
+        (return (get_local $src))
+        (if
+          (call $is_variable (get_local $src))
+          (return (call $find_key (get_local $src) (get_local $env)))
+          (return (get_local $src)) ;; literal string
+        )
       )
-      (return (get_local $src)) ;; literal value
     )
     (unreachable)
   )
@@ -374,11 +411,7 @@
     (loop $more
       (if (i32.gt_u (get_local $ptr) (get_local $max))
         ;; if we are not back to the root cell, it's a syntax error
-        (then
-          (call $err_char (i32.const 777))
-
-          (return (call $head (get_local $last)))
-        )
+        (return (call $head (get_local $last)))
       )
       ;; read the next character
       (set_local $char (i32.load8_u (get_local $ptr)))
@@ -528,4 +561,5 @@
 
   (export "memory" (memory $memory))
 )
+
 
