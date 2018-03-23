@@ -38,7 +38,11 @@ var src2ast = [
   {src:'((()))', ast:[[[]]]},
   {src:'(() ())', ast:[[],[]]},
   {src:'(h)', ast:['h']},
+//parsing something not in a list doesn't work currently
+//  {src: 'h', ast: 'h'},
+//  {src: '10', ast: 10},
   {src:'(ab)', ast:['ab',]},
+  {src:'(+ 1 2)', ast:['+', 1, 2]},
   {src:'(h 1 2)', ast:['h', 1, 2]},
   {src:'(h (n 1 2))', ast:['h', ['n', 1, 2]]},
   {src:'(h (n 1000 123456))', ast:['h', ['n', 1000, 123456]]},
@@ -178,4 +182,6 @@ src2ast.forEach(function (e) {
     t.end()
   })
 })
+
+
 
