@@ -77,7 +77,7 @@
     )
   )
 
-  (func $is_int (param $ptr i32) (result i32)
+  (func $is_int (export "is_int") (param $ptr i32) (result i32)
     (i32.eq (i32.load (get_local $ptr)) (i32.const 0x5000000) )
   )
 
@@ -273,33 +273,33 @@
     (return (i32.const 0))
   )
 
-;; ----
+  ;; ----
 
-(func $call_core (export "call_core") (param $expr i32) (result i32)
-  (local $char i32)
-  (if
-    (i32.ne (call $string_length (get_local $expr)) (i32.const 1))
-    (return (i32.const -1)) ;; make an error!
+  (func $call_core (export "call_core") (param $expr i32) (result i32)
+    (local $char i32)
+    (if
+      (i32.ne (call $string_length (get_local $expr)) (i32.const 1))
+      (return (i32.const -1)) ;; make an error!
+    )
+    (set_local $char
+      (i32.load8_u (i32.add
+          (call $head (get_local $expr)) (i32.const 4)
+      ))
+    )
+    (if (i32.eq (get_local $char) (i32.const 43))
+      (return (call $add (call $tail (get_local $expr))))
+      (return (i32.const 0))
+    )
+    (i32.const 0)
   )
-  (set_local $char
-    (i32.load8_u (i32.add
-        (call $head (get_local $expr)) (i32.const 4)
-    ))
+
+
+  (func $eval (export "eval")
+    (param $code i32) (param $env i32) (result i32)
+    (i32.const -1)
   )
-  (if (i32.eq (get_local $char) (i32.const 43))
-    (return (call $add (call $tail (get_local $expr))))
-    (return (i32.const 0))
-  )
-  (i32.const 0)
-)
 
-
-(func $eval (export "eval")
-  (param $code i32) (param $env i32) (result i32)
-  (i32.const -1)
-)
-
-;;
+  ;;
 
 
   ;; /=============================================\
@@ -317,6 +317,14 @@
         (i32.ge_u (get_local $char) (i32.const 42)) ;; "*"...
         (i32.eq (get_local $char) (i32.const 36)) ;; "$"
       )
+    )
+  )
+
+  ;; greater than 42, or $=36, consider as names
+  (func $is_number_char (param $char i32) (result i32)
+    (i32.and
+      (i32.ge_u (get_local $char) (i32.const 48)) ;; 0
+      (i32.le_u (get_local $char) (i32.const 57)) ;; 9
     )
   )
 
@@ -343,10 +351,15 @@
     (loop $more
       (if (i32.gt_u (get_local $ptr) (get_local $max))
         ;; if we are not back to the root cell, it's a syntax error
-        (return (call $head (get_local $last)))
+        (then
+          (call $err_char (i32.const 777))
+
+          (return (call $head (get_local $last)))
+        )
       )
       ;; read the next character
       (set_local $char (i32.load8_u (get_local $ptr)))
+
       (if (i32.eqz (get_local $state))
         (if (i32.eq (get_local $char) (i32.const 40) )
           ;;HANDLE "(" open bracket
@@ -362,26 +375,32 @@
                   (call $head (get_local $last))
               ))
             )
-            (if (call $is_name_char (get_local $char))
+            (if (call $is_number_char (get_local $char))
               (then
-                ;; switch to name state
-                (set_local $state (i32.const 1))
-                (set_local $str (get_local $ptr))
+                (set_local $str (i32.const 0))
+                (set_local $state (i32.const 5))
               )
-              (if
-                (i32.eq (get_local $char) (i32.const 34))
+              (if (call $is_name_char (get_local $char))
                 (then
-                  ;;fallthrough to quoted string state
+                  ;; switch to name state
+                  (set_local $state (i32.const 1))
                   (set_local $str (get_local $ptr))
-                  (set_local $state (i32.const 3))
                 )
                 (if
-                    (i32.eqz (call $is_whitespace (get_local $char)))
-                    (then
-                      ;; must be a comment
-                      (set_local $state (i32.const 2))
-                      (br $more)
-                    )
+                  (i32.eq (get_local $char) (i32.const 34))
+                  (then
+                    ;;fallthrough to quoted string state
+                    (set_local $str (get_local $ptr))
+                    (set_local $state (i32.const 3))
+                  )
+                  (if
+                      (i32.eqz (call $is_whitespace (get_local $char)))
+                      (then
+                        ;; must be a comment
+                        (set_local $state (i32.const 2))
+                        (br $more)
+                      )
+                  )
                 )
               )
             )
@@ -453,8 +472,30 @@
         (if (i32.eq (get_local $state) (i32.const 4))
           ;; go back to string state, after this loop
           (set_local $state (i32.const 3))
+          ;; numbers!
+          (if (i32.eq (get_local $state) (i32.const 5))
+            (if
+              (call $is_number_char (get_local $char))
+              (then
+                (set_local $str (i32.add
+                (i32.mul (get_local $str) (i32.const 10) )
+                (i32.sub (get_local $char) (i32.const 48) )
+              )))
+              (else
+                (set_local $last
+                  (call $cons
+                    (call $int (get_local $str))
+                    (get_local $last)
+                  )
+                )
+                (set_local $state (i32.const 0))
+                (br $more)
+              )
+            )
+          )
         )
       )
+
 
       (set_local $ptr (i32.add (get_local $ptr) (i32.const 1)))
       (br $more)
@@ -464,11 +505,4 @@
 
   (export "memory" (memory $memory))
 )
-
-
-
-
-
-
-
 
