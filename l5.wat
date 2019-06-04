@@ -380,7 +380,7 @@
     )
   )
 
-  ;; greater than 42, or $=36, consider as names
+  ;; greater than 48-57 are digits 0-9
   (func $is_number_char (param $char i32) (result i32)
     (i32.and
       (i32.ge_u (get_local $char) (i32.const 48)) ;; 0
