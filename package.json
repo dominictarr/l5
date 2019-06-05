@@ -12,8 +12,10 @@
     "tape": "^4.9.0"
   },
   "scripts": {
-    "test": "set -e; for t in test/*.js; do node $t; done"
+    "test": "set -e; for t in test/*.js; do node $t; done",
+    "build": "wat2wasm l5.wat > l5.wasm"
   },
   "author": "'Dominic Tarr' <dominic.tarr@gmail.com> (dominictarr.com)",
   "license": "MIT"
 }
+
