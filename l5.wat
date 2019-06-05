@@ -81,6 +81,11 @@
     (i32.eq (i32.load (get_local $ptr)) (i32.const 0x5000000) ) ;; checks the tag
   )
 
+  (func $is_type_equal (export "is_type_eq")
+    (param $a i32)  (param $b i32)  (result i32)
+    (i32.eq (i32.load (get_local $a)) (i32.load (get_local $b)))
+  )
+
   (func $head (export "head") (param $list i32) (result i32)
     (i32.load (i32.add (get_local $list) (i32.const 4)))
   )
@@ -188,9 +193,9 @@
         (i32.add
           (i32.shr_u (get_local $length) (i32.const 2))
           ;; !! (length & 3)
-            (i32.eqz (i32.eqz
-              (i32.and (get_local $length) (i32.const 3))
-            ))
+          (i32.eqz (i32.eqz
+            (i32.and (get_local $length) (i32.const 3))
+          ))
         )
         (i32.const 2)
       )
@@ -267,6 +272,53 @@
     (unreachable)
   )
 
+  ;; check if two values are equal. either exactly the same value, or structurally equal.
+
+  (func $equal (export "equal")
+    (param $a i32) (param $b i32) (result i32)
+    ;;if not the same types, then not equal
+    (if
+      (i32.eqz (call $is_type_equal (get_local $a) (get_local $b)))
+      (return (i32.const 0))
+    )
+
+    ;; if a or b is null, then only equal if both equal
+    (if
+      (i32.or
+        (i32.eqz (get_local $a))
+        (i32.eqz (get_local $a))
+      )
+      (return (i32.eq (get_local $a) (get_local $b)))
+    )
+
+    ;; if a == b (reference to same thing) then equal.
+    (if
+      (i32.eq (get_local $a) (get_local $b))
+      (return (i32.const 1))
+    )
+
+    ;; is equal numbers
+    (if
+      (call $is_int (get_local $a))
+      (return (i32.eq
+        (call $int_value (get_local $a))
+        (call $int_value (get_local $b))
+      ))
+    )
+    ;; is equal strings
+    (if (call $is_string (get_local $a))
+      (return (call $string_equal (get_local $a) (get_local $b)))
+      ;; if the heads are equal, then the tails should be equal too
+    )
+
+    ;; is equal structures
+    (return (i32.and
+      (call $equal (call $head (get_local $a)) (call $head (get_local $b)))
+      (call $equal (call $tail (get_local $a)) (call $tail (get_local $b)))
+    ))
+
+  )
+
   (func $string_eq_char (export "string_eq_char")
     (param $str i32) (param $char i32) (result i32)
     (if
@@ -286,24 +338,43 @@
   (func $call_core (export "call_core")
     (param $fn_index i32) (param $args i32) (param $env i32) (result i32)
 
-    (if (i32.eq (get_local $fn_index) (i32.const 43)) ;; addition +
+    ;; addition '+'
+    (if (i32.eq (get_local $fn_index) (i32.const 43))
       (return (call $add
         (call $map_eval
           (get_local $args)
           (get_local $env)
         )
       ))
-      ;;
-      (if (i32.eq (get_local $fn_index) (i32.const 63)) ;; if ?
-        (if
-          (call $int_value (call $eval (call $head (get_local $args)) (get_local $env)))
-          (return (call $eval (call $head2 (get_local $args)) (get_local $env)))
-          (return (call $eval (call $head3 (get_local $args)) (get_local $env)))
-        )
-        (return (i32.const -1))
-      )
     )
+
+    ;; if '?'
+    (if (i32.eq (get_local $fn_index) (i32.const 63))
+      (if
+        (call $int_value (call $eval (call $head (get_local $args)) (get_local $env)))
+        (return (call $eval (call $head2 (get_local $args)) (get_local $env)))
+        (return (call $eval (call $head3 (get_local $args)) (get_local $env)))
+      )
+;;      (unreachable)
+    )
+
+    ;; equality '='
+    (if (i32.eq (get_local $fn_index) (i32.const 61))
+      (return (call $int (call $equal
+        (call $eval (call $head  (get_local $args)) (get_local $env))
+        (call $eval (call $head2 (get_local $args)) (get_local $env))
+      )))
+    )
+
+    ;; quote 'q'
+    (if
+      (i32.eq (get_local $fn_index) (i32.const 113))
+;;      (return (call $int_value (i32.const 0)))
+      (return (get_local $args))
+    )
+
     (unreachable)
+;;    (return (i32.const -1))
   )
 
   (func $string_first_char (export "string_first_char")
@@ -360,24 +431,21 @@
   (func $eval (export "eval")
     (param $src i32) (param $env i32) (result i32)
     (if
-      (call $is_cons (get_local $src)) ;; a string or number
+      ;; if src in a cons, call as a function
+      (call $is_cons (get_local $src))
       (return (call $call_core
         ;; call core method by it's first character
         (call $string_first_char (call $head (get_local $src)))
         (call $tail (get_local $src))
         (get_local $env)
-
-;;        (call $map_eval
-;;          (call $tail (get_local $src))
-;;          (get_local $env)
-;;        )
       ))
+      ;; else it's a literal number, string, or variable
       (if
         (call $is_int (get_local $src))
         (return (get_local $src)) ;; this is a pointer, not the number?
         (if
           (call $is_variable (get_local $src))
-          (return (call $find_key (get_local $src) (get_local $env)))
+          (return (call $find_key (get_local $src) (get_local $env)) )
           (return (get_local $src)) ;; literal string
         )
       )
@@ -587,4 +655,10 @@
 
   (export "memory" (memory $memory))
 )
+
+
+
+
+
+
 
