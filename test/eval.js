@@ -75,11 +75,11 @@ tape('undefined variable!', function (t) {
 })
 
 
-//tape('?', function (t) {
-//  ev(t, '((? 0 10 20))', 20)
-//  ev(t, '((? 1 10 20))', 10)
-//
-//  t.end()
-//})
+tape('?', function (t) {
+  ev(t, '((? 0 10 20))', 20)
+  ev(t, '((? 1 10 20))', 10)
+
+  t.end()
+})
 
 

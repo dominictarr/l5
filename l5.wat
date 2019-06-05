@@ -296,7 +296,7 @@
       ;;
       (if (i32.eq (get_local $fn_index) (i32.const 63)) ;; if ?
         (if
-          (call $eval (call $head (get_local $args)) (get_local $env))
+          (call $int_value (call $eval (call $head (get_local $args)) (get_local $env)))
           (return (call $eval (call $head2 (get_local $args)) (get_local $env)))
           (return (call $eval (call $head3 (get_local $args)) (get_local $env)))
         )
@@ -587,30 +587,4 @@
 
   (export "memory" (memory $memory))
 )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
