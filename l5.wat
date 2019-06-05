@@ -78,11 +78,19 @@
   )
 
   (func $is_int (export "is_int") (param $ptr i32) (result i32)
-    (i32.eq (i32.load (get_local $ptr)) (i32.const 0x5000000) )
+    (i32.eq (i32.load (get_local $ptr)) (i32.const 0x5000000) ) ;; checks the tag
   )
 
   (func $head (export "head") (param $list i32) (result i32)
     (i32.load (i32.add (get_local $list) (i32.const 4)))
+  )
+
+  (func $head2 (export "head2") (param $list i32) (result i32)
+    (call $head (call $tail (get_local $list)))
+  )
+
+  (func $head3 (export "head3") (param $list i32) (result i32)
+    (call $head (call $tail (call $tail (get_local $list))))
   )
 
   (func $tail (export "tail") (param $list i32) (result i32)
@@ -274,11 +282,26 @@
 
   ;; ----
 
+  ;; call a core method. these all hae single character names
   (func $call_core (export "call_core")
-    (param $fn_index i32) (param $args i32) (result i32)
-    (if (i32.eq (get_local $fn_index) (i32.const 43))
-      (return (call $add (get_local $args)))
-      (return (i32.const -1))
+    (param $fn_index i32) (param $args i32) (param $env i32) (result i32)
+
+    (if (i32.eq (get_local $fn_index) (i32.const 43)) ;; addition +
+      (return (call $add
+        (call $map_eval
+          (get_local $args)
+          (get_local $env)
+        )
+      ))
+      ;;
+      (if (i32.eq (get_local $fn_index) (i32.const 63)) ;; if ?
+        (if
+          (call $eval (call $head (get_local $args)) (get_local $env))
+          (return (call $eval (call $head2 (get_local $args)) (get_local $env)))
+          (return (call $eval (call $head3 (get_local $args)) (get_local $env)))
+        )
+        (return (i32.const -1))
+      )
     )
     (unreachable)
   )
@@ -341,14 +364,17 @@
       (return (call $call_core
         ;; call core method by it's first character
         (call $string_first_char (call $head (get_local $src)))
-        (call $map_eval
-          (call $tail (get_local $src))
-          (get_local $env)
-        )
+        (call $tail (get_local $src))
+        (get_local $env)
+
+;;        (call $map_eval
+;;          (call $tail (get_local $src))
+;;          (get_local $env)
+;;        )
       ))
       (if
         (call $is_int (get_local $src))
-        (return (get_local $src))
+        (return (get_local $src)) ;; this is a pointer, not the number?
         (if
           (call $is_variable (get_local $src))
           (return (call $find_key (get_local $src) (get_local $env)))
@@ -561,5 +587,30 @@
 
   (export "memory" (memory $memory))
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
