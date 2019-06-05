@@ -3,10 +3,6 @@ function find_func (name, env) {
 
 }
 
-function l5_eval (code, env) {
-//  return l5_eval (find_func(l.head(code))
-}
-
 var tape = require('tape')
 
 var l = require('../')
@@ -75,10 +71,65 @@ tape('undefined variable!', function (t) {
 })
 
 
-tape('?', function (t) {
+tape('if ?', function (t) {
   ev(t, '((? 0 10 20))', 20)
   ev(t, '((? 1 10 20))', 10)
 
+  t.end()
+})
+
+tape('lambda !', function (t) {
+//  ev(t, '( ((!($foo) (+ $foo 1)) 2))', 3)
+  ev(t, '( (+ 1 $foo) (($foo 2)) )', 3)
+  //ev(t, '( (stitch ($foo) (2)) )', '3')
+  t.end()
+})
+
+var ary = [
+  '1',
+  '2',
+  '(q)',
+  '(q 1 2 3)',
+  '(q ())',
+  '(q (1 2) 3)',
+  '(q (q))',
+  '(q (q 1 2) 3)'
+]
+
+
+tape('can eval quotes', function (t) {
+  var a = '(q 1 2 3)'
+  ary.forEach(function (a, i) {
+    console.log('EVAL:', a)
+    var ast = l.parse(l.write(a))
+    t.doesNotThrow(function () {
+      l.eval(ast, 0) //just check that that it evals without throwing
+    })
+  })
+  t.end()
+})
+
+tape('equal', function (t) {
+  var r1 = l.parse(l.write('1'))
+  var r2 = l.parse(l.write('1'))
+  t.ok(l.equal(r1, r2))
+  t.ok(l.equal(r1, r1))
+  ary.forEach(function (a, i) {
+    var ast = l.parse(l.write(a))
+    t.doesNotThrow(function () {
+      console.log('head?:', codec.stringify(l.head(ast)))
+    })
+    ary.forEach(function (b, j) {
+      var _a = l.parse(l.write(a))
+      var _b = l.parse(l.write(b))
+      var src = '(= '+a+' '+b+')'
+      t.equal(l.equal(_a, _b), +(i == j), (i == j)+ '= '+a+' '+b)
+      t.equal(l.equal(l.eval(_a), l.eval(_b)), +(i == j))
+      var ast = l.parse(l.write(src))
+      t.equal(l.int_value(l.eval(ast)), +(i == j))
+      ev(t, '('+src+')', +(i === j))
+    })
+  })
   t.end()
 })
 
