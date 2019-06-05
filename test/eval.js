@@ -12,6 +12,22 @@ var tape = require('tape')
 var l = require('../')
 var codec = require('../codec')
 
+function ev(t, src, expected) {
+  var ast = l.parse(l.write(src))
+  t.equal(
+    l.int_value(
+      l.eval(
+        l.head(ast),
+        //env is just a list of string: value pairs
+        l.head(l.tail(ast))
+      )
+    ),
+    expected,
+    src
+  )
+}
+
+
 //to eval an expression,
 //if it's a number or string, return that.
 //if it's a list, lookup the first element in the env
@@ -42,44 +58,28 @@ tape('test simple evals', function (t) {
 
 tape('test nested eval', function (t) {
 
-  t.equal(l.int_value(
-    l.eval(l.parse(l.write('(+ 1 2 (+ 3 4 5))')))
-  ), 15, '(+ 1 2 (+ 3 4 5))')
-
+  ev(t, '((+ 1 2 (+ 3 4 5)))', 1+2+3+4+5)
   t.end()
 })
 
 tape('variables!', function (t) {
+  ev(t, '((+ $three $five) (($three 3) ($five 5)))', 8)
+  t.end()
+})
 
-  //t.equal(l.int_value(
-  console.log(codec.stringify(l.find_key(
-    l.write('$five'),
-    l.parse(l.write('(($three 3) ($five 5))'))
-  )))
-//), 5)
-
-//  t.equal(l.int_value(
-
-  console.log(codec.stringify(
-    l.eval(
-      l.parse(l.write('(+ $three $five)')),
-      //env is just a list of string: value pairs
-      l.parse(l.write('(($three 3) ($five 5))'))
-    )
-  ))
-
-  t.equal(l.int_value(
-    l.eval(
-      l.parse(l.write('(+ $three $five)')),
-      //env is just a list of string: value pairs
-      l.parse(l.write('(($three 3) ($five 5))'))
-    )
-  ), 8, '(+ $three $five)')
+tape('undefined variable!', function (t) {
+  t.throws (function () {
+    ev(t, '((+ $three $undef) (($three 3) ($five 5)))', 8)
+  })
   t.end()
 })
 
 
-
-
+//tape('?', function (t) {
+//  ev(t, '((? 0 10 20))', 20)
+//  ev(t, '((? 1 10 20))', 10)
+//
+//  t.end()
+//})
 
 
