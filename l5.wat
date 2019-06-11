@@ -18,6 +18,8 @@
   (import "console" "err_char" (func $err_char (param i32)))
   (import "error" "throw" (func $_throw (param i32)))
 
+  ;; todo: data section that code?
+
   (global $free (mut i32) (i32.const 16))
   (global $root (mut i32) (i32.const 0))
 
@@ -100,6 +102,10 @@
 
   (func $tail (export "tail") (param $list i32) (result i32)
     (i32.load (i32.add (get_local $list) (i32.const 8)))
+  )
+
+  (func $pair (export "pair") (param $a i32) (param $b i32) (result i32)
+    (return (call $cons (get_local $a) (call $cons (get_local $b) (i32.const 0))))
   )
 
   (func $set_head (export "set_head") (param $list i32) (param $value i32) (result i32)
@@ -355,7 +361,6 @@
         (return (call $eval (call $head2 (get_local $args)) (get_local $env)))
         (return (call $eval (call $head3 (get_local $args)) (get_local $env)))
       )
-;;      (unreachable)
     )
 
     ;; equality '='
@@ -369,12 +374,10 @@
     ;; quote 'q'
     (if
       (i32.eq (get_local $fn_index) (i32.const 113))
-;;      (return (call $int_value (i32.const 0)))
       (return (get_local $args))
     )
 
     (unreachable)
-;;    (return (i32.const -1))
   )
 
   (func $string_first_char (export "string_first_char")
@@ -405,6 +408,25 @@
     (unreachable)
   )
 
+  (func $zip (export "zip")
+    (param $a i32) (param $b i32) (result i32)
+    (local $h i32)
+    (if
+      (i32.eqz (get_local $a))
+      ;;(i32.or (i32.eqz (get_local $a)) (i32.eqz (get_local $b)) )
+      (return (i32.const 0))
+      (if
+        (i32.eqz (get_local $b))
+        (set_local $h (call $cons (call $head (get_local $a)) (i32.const 0)))
+        (set_local $h (call $pair (call $head (get_local $a)) (call $head (get_local $b))))
+      )
+    )
+    (return (call $cons
+      (get_local $h)
+      (call $zip (call $tail (get_local $a)) (call $tail (get_local $b)))
+    ))
+  )
+
   (func $find_key (export "find_key")
     (param $key i32) (param $kvlist i32) (result i32)
     (if
@@ -430,27 +452,32 @@
 
   (func $eval (export "eval")
     (param $src i32) (param $env i32) (result i32)
+
+    ;; if src in a cons, call as a function
     (if
-      ;; if src in a cons, call as a function
       (call $is_cons (get_local $src))
+
+      ;;TODO: check if (head $src) is cons... that is lambda
       (return (call $call_core
         ;; call core method by it's first character
         (call $string_first_char (call $head (get_local $src)))
         (call $tail (get_local $src))
         (get_local $env)
       ))
-      ;; else it's a literal number, string, or variable
-      (if
-        (call $is_int (get_local $src))
-        (return (get_local $src)) ;; this is a pointer, not the number?
-        (if
-          (call $is_variable (get_local $src))
-          (return (call $find_key (get_local $src) (get_local $env)) )
-          (return (get_local $src)) ;; literal string
-        )
-      )
     )
-    (unreachable)
+
+    ;; else it's a literal number, string, or variable
+    (if
+      (call $is_int (get_local $src))
+      (return (get_local $src)) ;; this is a pointer, not the number?
+    )
+
+    (if
+      (call $is_variable (get_local $src))
+      (return (call $find_key (get_local $src) (get_local $env)) )
+    )
+
+    (return (get_local $src)) ;; literal string
   )
 
   ;;
@@ -646,7 +673,6 @@
         )
       )
 
-
       (set_local $ptr (i32.add (get_local $ptr) (i32.const 1)))
       (br $more)
     )
@@ -655,10 +681,3 @@
 
   (export "memory" (memory $memory))
 )
-
-
-
-
-
-
-
