@@ -8,8 +8,12 @@ var tape = require('tape')
 var l = require('../')
 var codec = require('../codec')
 
+function p (s) {
+  return l.parse(l.write(s))
+}
+
 function ev(t, src, expected) {
-  var ast = l.parse(l.write(src))
+  var ast = p(src)
   t.equal(
     l.int_value(
       l.eval(
@@ -31,7 +35,7 @@ function ev(t, src, expected) {
 
 tape('test simple evals', function (t) {
 
-  var expr = l.parse(l.write('(+ 1 2)'))
+  var expr = p('(+ 1 2)')
   console.log('expr_ptr', expr)
   t.equal(l.int_value(l.eval(l.int(3), l.cons(0,0))), 3)
   t.equal(l.read(l.eval(l.write('hello'), l.cons(0,0))), 'hello')
@@ -101,7 +105,7 @@ tape('can eval quotes', function (t) {
   var a = '(q 1 2 3)'
   ary.forEach(function (a, i) {
     console.log('EVAL:', a)
-    var ast = l.parse(l.write(a))
+    var ast = p(a)
     t.doesNotThrow(function () {
       l.eval(ast, 0) //just check that that it evals without throwing
     })
@@ -110,8 +114,8 @@ tape('can eval quotes', function (t) {
 })
 
 tape('equal', function (t) {
-  var r1 = l.parse(l.write('1'))
-  var r2 = l.parse(l.write('1'))
+  var r1 = p('1')
+  var r2 = p('1')
   t.ok(l.equal(r1, r2))
   t.ok(l.equal(r1, r1))
   ary.forEach(function (a, i) {
@@ -120,12 +124,11 @@ tape('equal', function (t) {
       console.log('head?:', codec.stringify(l.head(ast)))
     })
     ary.forEach(function (b, j) {
-      var _a = l.parse(l.write(a))
-      var _b = l.parse(l.write(b))
+      var _a = p(a), _b = p(b)
       var src = '(= '+a+' '+b+')'
       t.equal(l.equal(_a, _b), +(i == j), (i == j)+ '= '+a+' '+b)
       t.equal(l.equal(l.eval(_a), l.eval(_b)), +(i == j))
-      var ast = l.parse(l.write(src))
+      var ast = p(src)
       t.equal(l.int_value(l.eval(ast)), +(i == j))
       ev(t, '('+src+')', +(i === j))
     })
@@ -133,4 +136,17 @@ tape('equal', function (t) {
   t.end()
 })
 
+tape('zip', function (t) {
+  var zipped = l.zip(p('(a b c)'), p('(1 2 3)'))
+  var zipped2 = l.zip(p('(a b c)'), p('(1 2)'))
+  t.equal(codec.stringify(zipped), '((a 1) (b 2) (c 3))')
+  t.equal(codec.stringify(zipped2), '((a 1) (b 2) (c))')
 
+  t.equal(l.int_value(l.find_key(p('a'), zipped)), 1)
+  t.equal(l.int_value(l.find_key(p('b'), zipped)), 2)
+  t.equal(l.int_value(l.find_key(p('c'), zipped)), 3)
+  t.equal(l.find_key(p('d'), zipped), 0)
+  t.equal(l.find_key(p('c'), zipped2), 0)
+
+  t.end()
+})
